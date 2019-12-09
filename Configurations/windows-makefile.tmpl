@@ -594,7 +594,7 @@ EOF
      if ($srcs[0] =~ /\.asm$/) {
          return <<"EOF";
 $obj$objext: $deps
-	\$(AS) $asflags \$(ASOUTFLAG)\$\@ $srcs
+	nasmpp.py -D_FULL $asflags \$(ASOUTFLAG)\$\@ $srcs
 EOF
      } elsif ($srcs[0] =~ /.S$/) {
          return <<"EOF";
