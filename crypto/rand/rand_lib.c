@@ -11,10 +11,10 @@
 #include <time.h>
 #include "internal/cryptlib.h"
 #include <openssl/opensslconf.h>
-#include "crypto/rand.h"
+#include "internal/rand_int.h"
 #include <openssl/engine.h>
 #include "internal/thread_once.h"
-#include "rand_local.h"
+#include "rand_lcl.h"
 #include "e_os.h"
 
 #ifndef OPENSSL_NO_ENGINE
@@ -835,35 +835,27 @@ int RAND_set_rand_method(const RAND_METHOD *meth)
     CRYPTO_THREAD_unlock(rand_meth_lock);
     return 1;
 }
+int sgx_rand_status(void);
+int get_sgx_rand_bytes(unsigned char *buf, int num);
+
+RAND_METHOD sgxssl_rand_meth = {
+    NULL,                       /* seed */
+    get_sgx_rand_bytes,
+    NULL,                       /* cleanup */
+    NULL,                       /* add */
+    get_sgx_rand_bytes,
+    sgx_rand_status,
+};
 
 const RAND_METHOD *RAND_get_rand_method(void)
 {
-    const RAND_METHOD *tmp_meth = NULL;
-
-    if (!RUN_ONCE(&rand_init, do_rand_init))
-        return NULL;
-
-    CRYPTO_THREAD_write_lock(rand_meth_lock);
-    if (default_RAND_meth == NULL) {
-#ifndef OPENSSL_NO_ENGINE
-        ENGINE *e;
-
-        /* If we have an engine that can do RAND, use it. */
-        if ((e = ENGINE_get_default_RAND()) != NULL
-                && (tmp_meth = ENGINE_get_RAND(e)) != NULL) {
-            funct_ref = e;
-            default_RAND_meth = tmp_meth;
-        } else {
-            ENGINE_finish(e);
-            default_RAND_meth = &rand_meth;
-        }
-#else
-        default_RAND_meth = &rand_meth;
-#endif
+    //Default SGXSSL will always use RDRAND engine (sgx_get_rand()).
+    //Thread lock removed due to performance drop it cause. (Lock mechanism result many enclave EENTER/EEXIT)
+    //
+    if (!default_RAND_meth) {
+        default_RAND_meth = &sgxssl_rand_meth;
     }
-    tmp_meth = default_RAND_meth;
-    CRYPTO_THREAD_unlock(rand_meth_lock);
-    return tmp_meth;
+    return default_RAND_meth;
 }
 
 #ifndef OPENSSL_NO_ENGINE
