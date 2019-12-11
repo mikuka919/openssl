@@ -136,8 +136,8 @@ Makefile
 !/crypto/*/asm/*.s
 /crypto/arm*.S
 /crypto/*/*.S
-*.asm
-!/crypto/*/asm/*.asm
+# *.asm
+# !/crypto/*/asm/*.asm
 
 # Object files
 *.o
@@ -183,3 +183,7 @@ pod2htmd.tmp
 # Windows manifest files
 *.manifest
 doc-nits
+
+# pp temp files
+/**/*.mitigated.*
+/**/*.preprocess.*
